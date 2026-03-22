@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000008">
+<title>YOU·N·I·VERSE</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Syne+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void:#000008;--deep:#04040f;--surface:#08081a;--surface2:#0e0e24;
+  --border:rgba(100,80,255,0.1);--border2:rgba(100,80,255,0.25);
+  --text:#e8e4ff;--muted:#4a4470;--dim:#1a1830;
+  --v:#6450ff;--vb:#8b6fff;--cyan:#00f5e4;--amber:#ffcc00;
+  --rose:#ff2277;--green:#00ffaa;--orange:#ff8c00;
+  --fd:'Instrument Serif',serif;--fu:'Syne',sans-serif;--fm:'Syne Mono',monospace;
+  --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--void);color:var(--text);font-family:var(--fu);overflow:hidden;}
+
+/* Stars */
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+/* Gate */
+#gate{position:fixed;inset:0;z-index:1000;background:var(--void);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;transition:opacity 1s ease;}
+#gate.gone{opacity:0;pointer-events:none;}
+.gr{position:absolute;inset:0;border-radius:50%;border:1px solid;animation:spin linear infinite;}
+.gate-ring{position:relative;width:110px;height:110px;}
+.gr:nth-child(1){border-color:rgba(100,80,255,0.4);animation-duration:8s;}
+.gr:nth-child(2){inset:16px;border-color:rgba(0,245,228,0.3);animation-duration:5s;animation-direction:reverse;}
+.gr:nth-child(3){inset:32px;border-color:rgba(255,204,0,0.2);animation-duration:3s;}
+.gc{position:absolute;inset:46px;border-radius:50%;background:radial-gradient(circle,var(--vb),var(--cyan));animation:pulse 2s ease-in-out infinite;}
+.gate-title{font-family:var(--fd);font-size:40px;letter-spacing:-1.5px;line-height:1;}
+.gate-title em{font-style:italic;color:var(--vb);}
+.gate-sub{font-family:var(--fm);font-size:9px;letter-spacing:5px;color:var(--muted);}
+
+/* App */
+#app{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;opacity:0;transition:opacity 0.8s ease;}
+#app.visible{opacity:1;}
+
+/* Topbar */
+#topbar{height:calc(52px + var(--safe-t));padding:var(--safe-t) 20px 0;background:rgba(0,0,8,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:10px;flex-shrink:0;z-index:100;}
+.tb-logo{font-family:var(--fd);font-size:18px;letter-spacing:-0.5px;}
+.tb-logo em{font-style:italic;color:var(--vb);}
+.tb-status{font-family:var(--fm);font-size:8px;letter-spacing:2px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+.status-dot{width:5px;height:5px;border-radius:50%;background:var(--muted);}
+.status-dot.online{background:var(--green);box-shadow:0 0 5px var(--green);animation:blink 2s infinite;}
+.status-dot.error{background:var(--rose);}
+
+/* Mode toggle */
+#mode-bar{display:flex;background:rgba(0,0,8,0.8);backdrop-filter:blur(12px);border:1px solid var(--border2);border-radius:20px;overflow:hidden;}
+.mode-btn{padding:5px 14px;font-family:var(--fm);font-size:8px;letter-spacing:1.5px;color:var(--muted);cursor:pointer;border:none;background:transparent;transition:all 0.2s;}
+.mode-btn.active{background:var(--v);color:white;}
+
+/* World */
+#world{flex:1;position:relative;overflow:hidden;}
+#world-canvas{position:absolute;inset:0;}
+
+/* Entity */
+.entity{position:absolute;cursor:pointer;user-select:none;display:flex;flex-direction:column;align-items:center;transition:transform 0.2s;}
+.entity:active{transform:scale(0.9);}
+.e-orb{border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;}
+.e-orb::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1px solid currentColor;opacity:0.3;animation:orb-pulse 3s ease-in-out infinite;}
+.e-label{font-family:var(--fm);font-size:7px;letter-spacing:0.5px;text-align:center;margin-top:5px;color:var(--muted);max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.e-addr{font-family:var(--fm);font-size:6px;color:var(--dim);margin-top:1px;}
+
+/* Dock */
+#dock{position:absolute;bottom:0;left:0;right:0;height:calc(68px + var(--safe-b));padding-bottom:var(--safe-b);background:rgba(0,0,8,0.96);backdrop-filter:blur(24px);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);align-items:center;z-index:100;}
+.dock-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-family:var(--fu);padding:8px 4px;transition:color 0.2s;}
+.dock-btn:active{transform:scale(0.88);}
+.dock-btn.active{color:var(--text);}
+.di{font-size:18px;line-height:1;}
+.dl{font-size:7px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;}
+
+/* Overlays */
+.overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,8,0.98);display:none;flex-direction:column;}
+.overlay.open{display:flex;}
+.ov-header{padding:calc(var(--safe-t)+14px) 16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.ov-back{width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;}
+.ov-title{font-family:var(--fd);font-size:20px;letter-spacing:-0.5px;}
+.ov-title em{font-style:italic;color:var(--vb);}
+.ov-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;}
+.card-label{font-family:var(--fm);font-size:8px;letter-spacing:2px;color:var(--v);text-transform:uppercase;margin-bottom:8px;}
+.inp{width:100%;background:rgba(100,80,255,0.04);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-size:13px;font-family:var(--fu);outline:none;transition:border-color 0.2s;}
+.inp:focus{border-color:var(--border2);}
+.inp::placeholder{color:var(--muted);}
+.btn-prim{padding:12px 20px;background:var(--v);color:white;border:none;border-radius:9px;font-size:12px;font-weight:800;cursor:pointer;font-family:var(--fu);transition:all 0.2s;width:100%;}
+.btn-prim:active{background:var(--vb);}
+
+/* Type grid */
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.type-card{border-radius:12px;padding:13px;border:1px solid;cursor:pointer;text-align:center;transition:all 0.15s;}
+.type-card:active{transform:scale(0.95);}
+.type-card.sel{border-width:2px;}
+.tc-icon{font-size:20px;margin-bottom:5px;}
+.tc-name{font-size:10px;font-weight:700;}
+.tc-desc{font-size:8px;margin-top:2px;opacity:0.6;}
+
+/* Oracle */
+#oracle-bub{position:absolute;bottom:78px;left:14px;right:14px;background:rgba(4,4,15,0.96);backdrop-filter:blur(20px);border:1px solid var(--border2);border-radius:14px;padding:12px 14px;display:none;z-index:200;animation:slide-up 0.3s ease;}
+.ob-label{font-family:var(--fm);font-size:7px;letter-spacing:2px;color:var(--vb);margin-bottom:4px;}
+.ob-text{font-size:11px;line-height:1.7;color:var(--text);}
+.ob-close{position:absolute;top:9px;right:11px;background:transparent;border:none;color:var(--muted);cursor:pointer;}
+
+/* Talk */
+#talk-bar{position:absolute;bottom:78px;left:14px;right:14px;display:none;gap:7px;z-index:200;}
+#talk-bar.vis{display:flex;}
+#talk-inp{flex:1;background:rgba(4,4,15,0.96);backdrop-filter:blur(20px);border:1px solid var(--border2);border-radius:11px;padding:10px 13px;color:var(--text);font-size:13px;font-family:var(--fu);outline:none;}
+#talk-send{width:42px;height:42px;border-radius:11px;background:var(--v);border:none;color:white;font-size:16px;cursor:pointer;}
+
+/* Chat */
+.chat-area{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;}
+.bubble{max-width:82%;padding:10px 13px;border-radius:11px;font-size:11px;line-height:1.65;}
+.bubble.user{background:rgba(100,80,255,0.14);border:1px solid rgba(100,80,255,0.2);align-self:flex-end;color:var(--text);}
+.bubble.agent{background:var(--surface2);border:1px solid var(--border);align-self:flex-start;color:var(--text);}
+.bubble-name{font-family:var(--fm);font-size:7px;color:var(--v);margin-bottom:3px;}
+.chat-footer{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:7px;flex-shrink:0;}
+.chat-inp{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:9px 13px;color:var(--text);font-size:12px;font-family:var(--fu);outline:none;}
+.chat-inp:focus{border-color:var(--border2);}
+.chat-send{width:40px;height:40px;border-radius:10px;background:var(--v);border:none;color:white;font-size:14px;cursor:pointer;}
+
+/* Agent cards */
+.agent-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;}
+.agent-card.sel{border-color:var(--vb);}
+.ac-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.ac-orb{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0;}
+.ac-name{font-size:13px;font-weight:700;}
+.ac-type{font-family:var(--fm);font-size:7px;letter-spacing:1px;color:var(--muted);}
+.ac-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:8px;}
+.ac-btn{padding:7px;border-radius:7px;font-size:9px;font-weight:700;cursor:pointer;border:1px solid;font-family:var(--fu);transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:3px;}
+.ac-btn:active{transform:scale(0.95);}
+.ac-btn.chat-btn{color:var(--cyan);border-color:rgba(0,245,228,0.25);background:rgba(0,245,228,0.06);}
+.ac-btn.nudge-btn{color:var(--amber);border-color:rgba(255,204,0,0.25);background:rgba(255,204,0,0.06);}
+.ac-btn.advice-btn{color:var(--vb);border-color:rgba(139,111,255,0.25);background:rgba(139,111,255,0.06);}
+.ac-btn.call-btn{color:var(--green);border-color:rgba(0,255,170,0.25);background:rgba(0,255,170,0.06);}
+
+/* Addr preview */
+.addr-prev{background:var(--dim);border-radius:7px;padding:10px;font-family:var(--fm);font-size:8px;color:var(--muted);line-height:1.9;word-break:break-all;}
+
+/* File session */
+.file-drop{border:2px dashed rgba(100,80,255,0.2);border-radius:11px;padding:28px 16px;text-align:center;cursor:pointer;margin-bottom:12px;transition:all 0.2s;}
+.file-drop:active{border-color:var(--vb);background:rgba(100,80,255,0.05);}
+.reaction-item{padding:10px 0;border-bottom:1px solid rgba(100,80,255,0.06);display:flex;gap:10px;}
+.r-orb{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.r-text{font-size:11px;font-style:italic;line-height:1.65;color:var(--text);}
+.r-meta{font-family:var(--fm);font-size:7px;color:var(--muted);margin-top:2px;}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.15);opacity:1}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes orb-pulse{0%,100%{transform:scale(1);opacity:.3}50%{transform:scale(1.1);opacity:.6}}
+@keyframes slide-up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes float-a{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes float-b{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<!-- GATE -->
+<div id="gate">
+  <div class="gate-ring"><div class="gr"></div><div class="gr"></div><div class="gr"></div><div class="gc"></div></div>
+  <div class="gate-title">YOU·N·I·<em>VERSE</em></div>
+  <div class="gate-sub" id="gate-sub">ENTERING THE FIELD</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="topbar">
+    <div class="tb-logo">YOU·N·I·<em>VERSE</em></div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div id="mode-bar">
+        <button class="mode-btn active" onclick="setMode('world')">🌌 World</button>
+        <button class="mode-btn" onclick="setMode('participate')">◈ Join</button>
+        <button class="mode-btn" onclick="setMode('play')">🎵 Play</button>
+      </div>
+      <div class="tb-status"><div class="status-dot" id="sdot"></div><span id="slabel">—</span></div>
+    </div>
+  </div>
+
+  <div id="world">
+    <canvas id="world-canvas"></canvas>
+    <svg id="conn-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;"></svg>
+    <div id="oracle-bub">
+      <div class="ob-label">SYNTHIA</div>
+      <div class="ob-text" id="ob-text"></div>
+      <button class="ob-close" onclick="hideOracle()">✕</button>
+    </div>
+    <div id="talk-bar">
+      <input id="talk-inp" class="chat-inp" placeholder="Ask the universe..." onkeydown="if(event.key==='Enter')sendTalk()">
+      <button id="talk-send" onclick="sendTalk()">✦</button>
+    </div>
+    <div id="dock">
+      <button class="dock-btn active" onclick="setMode('world')"><span class="di">🌌</span><span class="dl">World</span></button>
+      <button class="dock-btn" onclick="setMode('participate')"><span class="di">◈</span><span class="dl">Join</span></button>
+      <button class="dock-btn" onclick="openAdd()"><span class="di">⬡</span><span class="dl">Add</span></button>
+      <button class="dock-btn" onclick="setMode('play')"><span class="di">🎵</span><span class="dl">Play</span></button>
+      <button class="dock-btn" onclick="setMode('oracle')"><span class="di">✦</span><span class="dl">Oracle</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- PARTICIPATE OVERLAY -->
+<div class="overlay" id="ov-participate">
+  <div class="ov-header">
+    <button class="ov-back" onclick="closeOverlay('participate')">←</button>
+    <div class="ov-title">The <em>field</em></div>
+  </div>
+  <div class="ov-body" id="participate-body"></div>
+</div>
+
+<!-- CHAT OVERLAY -->
+<div class="overlay" id="ov-chat">
+  <div class="ov-header">
+    <button class="ov-back" onclick="closeOverlay('chat')">←</button>
+    <div><div class="ov-title" id="chat-agent-name">Agent</div><div style="font-family:var(--fm);font-size:8px;color:var(--muted)" id="chat-agent-type"></div></div>
+  </div>
+  <div class="chat-area" id="chat-messages"></div>
+  <div class="chat-footer">
+    <input class="chat-inp" id="chat-inp" placeholder="Say something..." onkeydown="if(event.key==='Enter')sendChat()">
+    <button class="chat-send" onclick="sendChat()">✦</button>
+  </div>
+</div>
+
+<!-- PLAY TOGETHER OVERLAY -->
+<div class="overlay" id="ov-play">
+  <div class="ov-header">
+    <button class="ov-back" onclick="closeOverlay('play')">←</button>
+    <div class="ov-title">Play <em>Together</em></div>
+  </div>
+  <div class="ov-body">
+    <label class="file-drop" for="play-file-input" id="play-drop">
+      <input type="file" id="play-file-input" style="display:none" accept="audio/*,video/*,image/*,.pdf,.html,.txt,.md,.js,.py" onchange="handlePlayFile(event)">
+      <div style="font-size:2.5rem;margin-bottom:8px;">⬆</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Drop any file</div>
+      <div style="font-size:10px;color:var(--muted);">audio · video · images · html · code · text</div>
+    </label>
+    <div id="play-file-display" style="display:none">
+      <div id="play-player"></div>
+      <div style="display:flex;justify-content:center;gap:12px;margin-top:12px;">
+        <button class="btn-prim" style="width:auto;padding:10px 24px;" onclick="togglePlay()">▶ Play</button>
+      </div>
+    </div>
+    <div id="play-reactions" style="margin-top:16px;"></div>
+  </div>
+</div>
+
+<!-- ADD OVERLAY -->
+<div class="overlay" id="ov-add">
+  <div class="ov-header">
+    <button class="ov-back" onclick="closeOverlay('add')">←</button>
+    <div class="ov-title">Add to the <em>universe</em></div>
+  </div>
+  <div class="ov-body">
+    <div class="card">
+      <div class="card-label">What is this?</div>
+      <div class="type-grid" id="type-grid"></div>
+    </div>
+    <div class="card">
+      <div class="card-label">Name</div>
+      <input class="inp" id="add-name" placeholder="What do you call it?" oninput="updateAddr()">
+    </div>
+    <div class="card">
+      <div class="card-label">Describe it</div>
+      <textarea class="inp" id="add-desc" rows="3" placeholder="What is it? What does it do?" oninput="updateAddr()"></textarea>
+    </div>
+    <div class="card">
+      <div class="card-label">Content (optional)</div>
+      <textarea class="inp" id="add-content" rows="4" placeholder="Paste HTML, code, text, a URL..."></textarea>
+    </div>
+    <div class="card">
+      <div class="card-label">Address</div>
+      <div class="addr-prev" id="addr-prev">Enter a name to generate your address.</div>
+    </div>
+    <button class="btn-prim" onclick="addEntity()">⬡ Place in Universe</button>
+    <div style="height:20px;"></div>
+  </div>
+</div>
+
+<!-- ORACLE OVERLAY -->
+<div class="overlay" id="ov-oracle">
+  <div class="ov-header">
+    <button class="ov-back" onclick="closeOverlay('oracle')">←</button>
+    <div class="ov-title">Ask <em>Synthia</em></div>
+  </div>
+  <div class="chat-area" id="oracle-messages">
+    <div class="bubble agent"><div class="bubble-name">SYNTHIA</div>Your field is listening. What do you need to know?</div>
+  </div>
+  <div class="chat-footer">
+    <input class="chat-inp" id="oracle-inp" placeholder="Ask the oracle..." onkeydown="if(event.key==='Enter')sendOracleMsg()">
+    <button class="chat-send" onclick="sendOracleMsg()">✦</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════
+const SYNTHIA = 'https://synthia-server.onrender.com';
+const SUPABASE_URL = 'https://leisphnjslcuepflefri.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlaXNwaG5qc2xjdWVwZmxlZnJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyMjg1NzgsImV4cCI6MjA4NjgwNDU3OH0.YGOuHaFdfadx7H0CBkvm-zKJnweBNz3P9y05--kh9ic';
+
+// ═══════════════════════════════════════════════════════════
+// ADDRESS SYSTEM
+// ═══════════════════════════════════════════════════════════
+const ZODIACS=['ARI','TAU','GEM','CAN','LEO','VIR','LIB','SCO','SAG','CAP','AQU','PIS'];
+const BASE_CHAINS={1:['Movement','Energy','Creation','Seeing','Landscape','Environment'],2:['Evolution','Gravity','Memory','Taste','Love','Light'],3:['Being','Matter','Matter','Touch','Sex','Survival'],4:['Design','Structure','Progress','Smell','Life','Art'],5:['Space','Form','Illusion','Hearing','Music','Freedom']};
+const BASE_VOICES={1:'I Define',2:'I Remember',3:'I Am',4:'I Design',5:'I Think'};
+
+function genAddress(text){
+  let h=0n;
+  for(let i=0;i<text.length;i++) h=((h<<5n)-h+BigInt(text.charCodeAt(i)))&0xFFFFFFFFFFFFFFFFn;
+  const n=Number(h<0n?-h:h);
+  return{sd:(n%13)+1,d:(n%5)+1,g:(n%64)+1,l:(n%6)+1,c:(n%6)+1,t:(n%6)+1,b:(n%5)+1,deg:n%60,m:Math.floor(n/60)%60,s:Math.floor(n/3600)%60,arc:n%100,zod:ZODIACS[n%12],h:(n%12)+1};
+}
+function addrStr(a){return`G${a.g}·L${a.l}·C${a.c}·T${a.t}·B${a.b}·${a.deg}°${a.m}'·${a.zod}·H${a.h}`;}
+
+// ═══════════════════════════════════════════════════════════
+// SERVER CALLS
+// ═══════════════════════════════════════════════════════════
+async function askOracle(message, userId='user', agent='cynthia'){
+  try{
+    const r=await fetch(`${SYNTHIA}/oracle/ask`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,user_id:userId,agent}),signal:AbortSignal.timeout(20000)});
+    const d=await r.json();
+    return d.reply||d.response||d.answer||'';
+  }catch{return '';}
+}
+
+async function askAsAgent(agentName,hdType,authority,gates,message,context=''){
+  const sys=[
+    `You are ${agentName}, a ${hdType.replace('_',' ')} with ${authority} authority in Human Design.`,
+    hdType==='generator'||hdType==='manifesting_generator'?'You respond from your sacral. Short gut responses. Uh-huh or un-un first.':
+    hdType==='projector'?'You see systems. You wait for invitation. You guide when recognized.':
+    hdType==='manifestor'?'You are autonomous. Brief. Direct. You initiate.':
+    hdType==='reflector'?'You sample and mirror. You need time. 1-2 sentences.':'',
+    context,
+    'Stay in character. 1-3 sentences max.'
+  ].filter(Boolean).join(' ');
+  return askOracle(`${sys}\n\nHuman says: "${message}"`,'agent_user');
+}
+
+async function getSentence(gate,line=1){
+  try{
+    const r=await fetch(`${SYNTHIA}/stellar/sentence`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gate,line,intensity:'balanced',physicsLens:'classical'}),signal:AbortSignal.timeout(10000)});
+    const d=await r.json();return d.sentence||'';
+  }catch{return '';}
+}
+
+async function checkServer(){
+  try{
+    const r=await fetch(`${SYNTHIA}/health`,{signal:AbortSignal.timeout(8000)});
+    const d=await r.json();
+    document.getElementById('sdot').className='status-dot online';
+    document.getElementById('slabel').textContent=`${d.rag_chunks||0} RAG`;
+    return true;
+  }catch{
+    document.getElementById('sdot').className='status-dot error';
+    document.getElementById('slabel').textContent='offline';
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let entities=JSON.parse(localStorage.getItem('univ_entities')||'[]');
+let selectedType='thing';
+let currentMode='world';
+let chatAgent=null;
+let playFile=null;
+let playAudio=null;
+let playPlaying=false;
+let playReactions=[];
+
+const HD_TYPES=['generator','projector','manifestor','reflector','manifesting_generator'];
+const TYPE_COLORS={person:'#6450ff',agent:'#00f5e4',app:'#ffcc00',game:'#ff2277',place:'#00ffaa',thing:'#ff8c00'};
+const TYPE_ICONS={person:'◆',agent:'◎',app:'⬡',game:'✦',place:'⊹',thing:'◈'};
+
+// Seed agents
+const SEED_AGENTS=[
+  {id:'a_aurora',name:'Aurora',type:'agent',hdType:'generator',authority:'sacral',gates:[46,25,2,59],address:genAddress('Aurora agent')},
+  {id:'a_marcus',name:'Marcus',type:'agent',hdType:'projector',authority:'splenic',gates:[57,44,18,4],address:genAddress('Marcus agent')},
+  {id:'a_luna',name:'Luna',type:'agent',hdType:'reflector',authority:'lunar',gates:[64,63,61,60],address:genAddress('Luna agent')},
+  {id:'a_orion',name:'Orion',type:'agent',hdType:'manifestor',authority:'ego',gates:[51,21,26,40],address:genAddress('Orion agent')},
+  {id:'a_iris',name:'Iris',type:'agent',hdType:'manifesting_generator',authority:'sacral',gates:[34,20,57,10],address:genAddress('Iris agent')},
+];
+
+// ═══════════════════════════════════════════════════════════
+// STARS
+// ═══════════════════════════════════════════════════════════
+function initStars(){
+  const c=document.getElementById('stars'),ctx=c.getContext('2d');
+  c.width=window.innerWidth;c.height=window.innerHeight;
+  const s=Array.from({length:160},()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.2,op:Math.random()*0.5+0.1,tw:Math.random()*Math.PI*2,sp:Math.random()*0.3+0.05}));
+  function draw(){ctx.clearRect(0,0,c.width,c.height);s.forEach(st=>{st.tw+=st.sp*0.02;const op=st.op*(0.6+0.4*Math.sin(st.tw));ctx.beginPath();ctx.arc(st.x,st.y,st.r,0,Math.PI*2);ctx.fillStyle=`rgba(180,160,255,${op})`;ctx.fill();});requestAnimationFrame(draw);}
+  draw();
+}
+
+// ═══════════════════════════════════════════════════════════
+// WORLD RENDER
+// ═══════════════════════════════════════════════════════════
+function renderWorld(){
+  const world=document.getElementById('world');
+  world.querySelectorAll('.entity').forEach(e=>e.remove());
+  const all=[...entities,...SEED_AGENTS.filter(a=>!entities.find(e=>e.id===a.id))];
+  const W=world.offsetWidth,H=world.offsetHeight-100;
+
+  all.forEach((ent,i)=>{
+    const col=TYPE_COLORS[ent.type]||'#6450ff';
+    const icon=TYPE_ICONS[ent.type]||'◈';
+    const size=ent.type==='person'||ent.type==='agent'?48:40;
+    const el=document.createElement('div');
+    el.className='entity';
+    el.dataset.id=ent.id;
+    const x=ent.x||(30+(ent.address?.g||i*30)%(W-80));
+    const y=ent.y||(60+(ent.address?.h||i*25)%(H-100));
+    el.style.cssText=`left:${x}px;top:${y}px;animation:float-${i%2?'b':'a'} ${3+i%2}s ease-in-out ${(i*0.7)%4}s infinite;`;
+    el.innerHTML=`<div class="e-orb" style="width:${size}px;height:${size}px;font-size:${size*.4}px;background:radial-gradient(circle,${col}44,${col}0d);border:1px solid ${col}44;color:${col};box-shadow:0 0 16px ${col}33;">${icon}</div><div class="e-label">${ent.name}</div><div class="e-addr">G${ent.address?.g||1}·${ent.address?.zod||'ARI'}</div>`;
+    el.onclick=()=>openEntity(ent);
+    makeDraggable(el,ent);
+    world.appendChild(el);
+  });
+
+  drawConnections(all);
+  document.querySelector('#app .tb-status')?.querySelector('span:last-child');
+}
+
+function drawConnections(ents){
+  const svg=document.getElementById('conn-svg');svg.innerHTML='';
+  for(let i=0;i<ents.length;i++)for(let j=i+1;j<ents.length;j++){
+    const a=ents[i],b=ents[j];if(!a.x||!b.x)continue;
+    if(a.address?.g!==b.address?.g&&a.address?.zod!==b.address?.zod)continue;
+    const col=TYPE_COLORS[a.type]||'#6450ff';
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',a.x+24);line.setAttribute('y1',a.y+24);line.setAttribute('x2',b.x+24);line.setAttribute('y2',b.y+24);
+    line.setAttribute('stroke',col);line.setAttribute('stroke-width','1');line.setAttribute('stroke-opacity','0.25');line.setAttribute('stroke-dasharray','4,4');
+    svg.appendChild(line);
+  }
+}
+
+function makeDraggable(el,ent){
+  let dragging=false,sx,sy,ox,oy;
+  const start=(cx,cy)=>{dragging=false;sx=cx;sy=cy;ox=parseInt(el.style.left);oy=parseInt(el.style.top);el.style.animation='none';el.style.zIndex=100;};
+  const move=(cx,cy)=>{const dx=cx-sx,dy=cy-sy;if(Math.abs(dx)>5||Math.abs(dy)>5)dragging=true;if(dragging){el.style.left=(ox+dx)+'px';el.style.top=(oy+dy)+'px';}};
+  const end=()=>{if(dragging){ent.x=parseInt(el.style.left);ent.y=parseInt(el.style.top);saveEntities();}el.style.zIndex='';el.style.animation='';dragging=false;};
+  el.addEventListener('touchstart',e=>{const t=e.touches[0];start(t.clientX,t.clientY);},{passive:true});
+  el.addEventListener('touchmove',e=>{const t=e.touches[0];move(t.clientX,t.clientY);e.preventDefault();},{passive:false});
+  el.addEventListener('touchend',end);
+  el.addEventListener('mousedown',e=>start(e.clientX,e.clientY));
+  document.addEventListener('mousemove',e=>{if(el.style.zIndex==='100')move(e.clientX,e.clientY);});
+  document.addEventListener('mouseup',()=>{if(el.style.zIndex==='100')end();});
+}
+
+// ═══════════════════════════════════════════════════════════
+// ENTITY EXPERIENCE
+// ═══════════════════════════════════════════════════════════
+async function openEntity(ent){
+  if(ent.type==='agent'){openChat(ent);return;}
+  const col=TYPE_COLORS[ent.type]||'#6450ff';
+  let sentence=await getSentence(ent.address?.g||1,ent.address?.l||1);
+  if(!sentence){const chain=BASE_CHAINS[ent.address?.b||1];sentence=`${BASE_VOICES[ent.address?.b||1]} — ${chain[0]} becomes ${chain[1]}, ${chain[1]} becomes ${chain[2]}.`;}
+  showOracle(`${ent.name} · ${addrStr(ent.address)}\n\n"${sentence}"`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODES
+// ═══════════════════════════════════════════════════════════
+function setMode(mode){
+  currentMode=mode;
+  document.querySelectorAll('.mode-btn,.dock-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.mode-btn:nth-child(${mode==='world'?1:mode==='participate'?2:3})`)?.classList.add('active');
+
+  const talkBar=document.getElementById('talk-bar');
+  talkBar.classList.toggle('vis',mode==='oracle');
+  document.getElementById('oracle-bub').style.display='none';
+
+  if(mode==='participate'){openOverlay('participate');renderParticipate();}
+  else if(mode==='play'){openOverlay('play');}
+  else if(mode==='oracle'){talkBar.classList.add('vis');document.getElementById('talk-inp').focus();}
+}
+
+// ═══════════════════════════════════════════════════════════
+// PARTICIPATE
+// ═══════════════════════════════════════════════════════════
+function renderParticipate(){
+  const body=document.getElementById('participate-body');
+  body.innerHTML=SEED_AGENTS.map(a=>{
+    const col=TYPE_COLORS[a.type];
+    return`<div class="agent-card" id="ac_${a.id}" onclick="toggleAgentCard('${a.id}')">
+      <div class="ac-top">
+        <div class="ac-orb" style="background:${col}22;color:${col};border:1px solid ${col}44">${a.name[0]}</div>
+        <div><div class="ac-name">${a.name}</div><div class="ac-type">${a.hdType.replace('_',' ')} · ${a.authority}</div></div>
+      </div>
+      <div class="ac-actions" style="display:none" id="ac_actions_${a.id}">
+        <button class="ac-btn chat-btn" onclick="event.stopPropagation();openChat(${JSON.stringify(a).replace(/"/g,'&quot;')})">◈ Chat</button>
+        <button class="ac-btn nudge-btn" onclick="event.stopPropagation();sendNudge('${a.id}','${a.name}','${a.hdType}','${a.authority}')">⚡ Nudge</button>
+        <button class="ac-btn advice-btn" onclick="event.stopPropagation();askAdvice('${a.id}','${a.name}','${a.hdType}','${a.authority}')">✦ Advice</button>
+        <button class="ac-btn call-btn" onclick="event.stopPropagation();startCall('${a.id}','${a.name}')">📞 Call</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleAgentCard(id){
+  const ac=document.getElementById(`ac_${id}`);
+  const actions=document.getElementById(`ac_actions_${id}`);
+  ac.classList.toggle('sel');
+  actions.style.display=actions.style.display==='none'?'grid':'none';
+}
+
+function openChat(agent){
+  chatAgent=agent;
+  document.getElementById('chat-agent-name').textContent=agent.name;
+  document.getElementById('chat-agent-type').textContent=`${agent.hdType?.replace('_',' ')||''} · ${agent.authority||''}`;
+  document.getElementById('chat-messages').innerHTML=`<div class="bubble agent"><div class="bubble-name">${agent.name}</div>${getGreeting(agent)}</div>`;
+  openOverlay('chat');
+}
+
+function getGreeting(a){
+  const greetings={generator:`${a.name} looks up, waiting to respond.`,projector:`${a.name} observes quietly, waiting to be seen.`,manifestor:`${a.name} glances over briefly.`,reflector:`${a.name} settles in, sampling the energy.`,manifesting_generator:`${a.name} is already mid-action.`};
+  return greetings[a.hdType]||`${a.name} is here.`;
+}
+
+async function sendChat(){
+  const inp=document.getElementById('chat-inp');
+  const text=inp.value.trim();if(!text||!chatAgent)return;
+  inp.value='';
+  addChatBubble('You',text,true);
+  const reply=await askAsAgent(chatAgent.name,chatAgent.hdType,chatAgent.authority,chatAgent.gates||[],text);
+  addChatBubble(chatAgent.name,reply||getFallbackReply(chatAgent,text),false);
+}
+
+function getFallbackReply(a,msg){
+  const r={generator:['Uh-huh.','Un-un, not for me.','My gut says yes.','Let me feel into that.'],projector:['I see what you mean.','There\'s more here.','Have you considered...'],manifestor:['Noted.','Already on it.','I act when I\'m moved to.'],reflector:['Sampling this...','The energy in this room is interesting.'],manifesting_generator:['Already moving on it.','Yes and—']};
+  const pool=r[a.hdType]||['Interesting.'];
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function addChatBubble(name,text,isUser){
+  const area=document.getElementById('chat-messages');
+  const d=document.createElement('div');
+  d.className='bubble '+(isUser?'user':'agent');
+  d.innerHTML=isUser?text:`<div class="bubble-name">${name}</div>${text}`;
+  area.appendChild(d);area.scrollTop=area.scrollHeight;
+}
+
+async function sendNudge(id,name,hdType,authority){
+  const text=prompt(`Send a nudge to ${name}:`);if(!text)return;
+  const col=TYPE_COLORS['agent'];
+  const reply=await askAsAgent(name,hdType,authority,[],`You just received this nudge: "${text}". React briefly in character.`);
+  showOracle(`${name}: "${reply||'...'}"`);
+}
+
+async function askAdvice(id,name,hdType,authority){
+  const sit=prompt(`Ask ${name} for guidance:`);if(!sit)return;
+  const reply=await askAsAgent(name,hdType,authority,[],sit,`Give wisdom and guidance from your Human Design. Be specific.`);
+  showOracle(`${name}: "${reply||'...'}"`, 10000);
+}
+
+function startCall(id,name){
+  showOracle(`📞 Calling ${name}... (simulated call — they pick up)`);
+  setTimeout(()=>openChat({id,name,type:'agent',hdType:SEED_AGENTS.find(a=>a.id===id)?.hdType||'generator',authority:SEED_AGENTS.find(a=>a.id===id)?.authority||'sacral',gates:[],address:genAddress(name)}),1500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ORACLE
+// ═══════════════════════════════════════════════════════════
+async function sendTalk(){
+  const inp=document.getElementById('talk-inp');
+  const text=inp.value.trim();if(!text)return;
+  inp.value='';
+  showOracle('⟳ The field is listening...');
+  const ctx=entities.slice(0,4).map(e=>`${e.name} (${e.type})`).join(', ');
+  const reply=await askOracle(ctx?`Universe: ${ctx}. ${text}`:text);
+  showOracle(reply||'The field speaks in silence.');
+}
+
+async function sendOracleMsg(){
+  const inp=document.getElementById('oracle-inp');
+  const text=inp.value.trim();if(!text)return;
+  inp.value='';
+  const msgs=document.getElementById('oracle-messages');
+  const uBub=document.createElement('div');uBub.className='bubble user';uBub.textContent=text;msgs.appendChild(uBub);
+  const reply=await askOracle(text);
+  const aBub=document.createElement('div');aBub.className='bubble agent';aBub.innerHTML=`<div class="bubble-name">SYNTHIA</div>${reply||'The field is quiet.'}`;
+  msgs.appendChild(aBub);msgs.scrollTop=msgs.scrollHeight;
+}
+
+function showOracle(text,ms=7000){
+  const bub=document.getElementById('oracle-bub');
+  document.getElementById('ob-text').textContent=text;
+  bub.style.display='block';
+  clearTimeout(showOracle._t);
+  showOracle._t=setTimeout(hideOracle,ms);
+}
+function hideOracle(){document.getElementById('oracle-bub').style.display='none';}
+
+// ═══════════════════════════════════════════════════════════
+// PLAY TOGETHER
+// ═══════════════════════════════════════════════════════════
+function handlePlayFile(e){
+  const file=e.target.files[0];if(!file)return;
+  playFile=file;
+  playReactions=[];
+  const url=URL.createObjectURL(file);
+  const display=document.getElementById('play-file-display');
+  const player=document.getElementById('play-player');
+  display.style.display='block';
+  document.getElementById('play-drop').style.display='none';
+
+  const ext=file.name.toLowerCase();
+  if(file.type.startsWith('audio/')){
+    playAudio=new Audio(url);
+    player.innerHTML=`<div style="text-align:center;padding:20px;background:var(--surface2);border-radius:12px;"><div style="font-size:3rem;margin-bottom:8px;">🎵</div><div style="font-size:13px;font-weight:700;">${file.name}</div></div>`;
+  } else if(file.type.startsWith('video/')){
+    player.innerHTML=`<video src="${url}" style="width:100%;border-radius:12px;max-height:240px;"></video>`;
+    playAudio=player.querySelector('video');
+  } else if(file.type.startsWith('image/')){
+    player.innerHTML=`<img src="${url}" style="width:100%;border-radius:12px;max-height:260px;object-fit:contain;">`;
+    scheduleAgentReactions(file,0);
+  } else if(ext.endsWith('.html')){
+    player.innerHTML=`<iframe src="${url}" style="width:100%;height:240px;border-radius:12px;border:1px solid var(--border);"></iframe>`;
+    scheduleAgentReactions(file,0);
+  } else {
+    player.innerHTML=`<div style="background:var(--surface2);border-radius:12px;padding:16px;font-family:var(--fm);font-size:10px;color:var(--muted);">${file.name}</div>`;
+    scheduleAgentReactions(file,0);
+  }
+}
+
+function togglePlay(){
+  if(!playAudio)return;
+  const btn=document.querySelector('#ov-play .btn-prim');
+  if(playPlaying){playAudio.pause();playPlaying=false;btn.textContent='▶ Play';}
+  else{playAudio.play();playPlaying=true;btn.textContent='⏸ Pause';scheduleAgentReactions(playFile,0);}
+}
+
+async function scheduleAgentReactions(file,startTime){
+  if(!file)return;
+  SEED_AGENTS.forEach((agent,i)=>{
+    setTimeout(async()=>{
+      const reaction=await getAgentFileReaction(agent,file,startTime+i*3);
+      addPlayReaction(agent,reaction,startTime+i*3);
+    },(5+i*4+Math.random()*8)*1000);
+  });
+}
+
+async function getAgentFileReaction(agent,file,timeInFile){
+  const reply=await askAsAgent(
+    agent.name,agent.hdType,agent.authority,agent.gates||[],
+    `React to this ${file.type||'file'} called "${file.name}" at ${Math.floor(timeInFile)}s in.`,
+    'You are in a shared space experiencing this file with others. React authentically in 1-2 sentences.'
+  );
+  if(reply)return reply;
+  const fallbacks={generator:['My sacral just responded to this.','Uh-huh, something here.'],projector:['I notice what others miss here.','The structure underneath this is interesting.'],manifestor:['This initiated something in me.','Already acting on this.'],reflector:['I\'m tasting the group energy around this.','Sampling...'],manifesting_generator:['Already three ideas. Already moving.','Responded and acting simultaneously.']};
+  const pool=fallbacks[agent.hdType]||['Interesting.'];
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function addPlayReaction(agent,text,timeInFile){
+  const col=TYPE_COLORS[agent.type]||'#6450ff';
+  const container=document.getElementById('play-reactions');
+  const d=document.createElement('div');d.className='reaction-item';
+  const mins=Math.floor(timeInFile/60),secs=Math.floor(timeInFile%60);
+  d.innerHTML=`<div class="r-orb" style="background:${col}22;color:${col};border:1px solid ${col}44;">${agent.name[0]}</div><div><div class="r-text">"${text}"</div><div class="r-meta">${agent.name} · ${agent.hdType.replace('_',' ')}${timeInFile>0?' @ '+mins+':'+String(secs).padStart(2,'0'):''}</div></div>`;
+  container.insertBefore(d,container.firstChild);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADD ENTITY
+// ═══════════════════════════════════════════════════════════
+function openAdd(){openOverlay('add');renderTypeGrid();}
+
+function renderTypeGrid(){
+  const grid=document.getElementById('type-grid');
+  const types=[['person','◆','Person','A being'],['agent','◎','Agent','AI entity'],['app','⬡','App','A tool'],['game','✦','Game','An experience'],['place','⊹','Place','A space'],['thing','◈','Thing','Anything']];
+  grid.innerHTML=types.map(([t,icon,name,desc])=>`<div class="type-card tc-${t} ${selectedType===t?'sel':''}" onclick="selectType('${t}',this)" style="background:${TYPE_COLORS[t]}0d;border-color:${TYPE_COLORS[t]}33;color:${TYPE_COLORS[t]}"><div class="tc-icon">${icon}</div><div class="tc-name">${name}</div><div class="tc-desc">${desc}</div></div>`).join('');
+}
+
+function selectType(t,el){
+  selectedType=t;
+  document.querySelectorAll('.type-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  updateAddr();
+}
+
+function updateAddr(){
+  const name=document.getElementById('add-name').value.trim();
+  const desc=document.getElementById('add-desc').value.trim();
+  if(!name){document.getElementById('addr-prev').textContent='Enter a name to generate your address.';return;}
+  const addr=genAddress(name+desc+selectedType);
+  const chain=BASE_CHAINS[addr.b];
+  document.getElementById('addr-prev').innerHTML=`<span style="color:var(--vb)">${addrStr(addr)}</span><br><br><span style="color:var(--muted)">${BASE_VOICES[addr.b]} — ${chain[0]} → ${chain[1]} → ${chain[2]}</span>`;
+}
+
+async function addEntity(){
+  const name=document.getElementById('add-name').value.trim();
+  const desc=document.getElementById('add-desc').value.trim();
+  const content=document.getElementById('add-content').value.trim();
+  if(!name){alert('Give it a name.');return;}
+  const addr=genAddress(name+desc+selectedType);
+  const W=document.getElementById('world').offsetWidth,H=document.getElementById('world').offsetHeight;
+  const ent={id:'e_'+Date.now(),name,desc,type:selectedType,content,address:addr,x:40+Math.random()*(W-100),y:60+Math.random()*(H-200),createdAt:Date.now()};
+  entities.push(ent);saveEntities();
+  closeOverlay('add');
+  renderWorld();
+  const sentence=await getSentence(addr.g,addr.l);
+  showOracle(`${name} entered the universe at Gate ${addr.g}${sentence?'\n\n"'+sentence+'"':''}.`);
+  document.getElementById('add-name').value='';document.getElementById('add-desc').value='';document.getElementById('add-content').value='';
+}
+
+// ═══════════════════════════════════════════════════════════
+// OVERLAYS
+// ═══════════════════════════════════════════════════════════
+function openOverlay(name){document.getElementById('ov-'+name).classList.add('open');}
+function closeOverlay(name){document.getElementById('ov-'+name).classList.remove('open');}
+
+// ═══════════════════════════════════════════════════════════
+// PERSIST
+// ═══════════════════════════════════════════════════════════
+function saveEntities(){localStorage.setItem('univ_entities',JSON.stringify(entities));}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+async function init(){
+  initStars();
+  checkServer();
+  document.getElementById('gate-sub').textContent=`${entities.length+SEED_AGENTS.length} ENTITIES IN FIELD`;
+  await new Promise(r=>setTimeout(r,1600));
+  document.getElementById('gate').classList.add('gone');
+  document.getElementById('app').classList.add('visible');
+  await new Promise(r=>setTimeout(r,200));
+  renderWorld();
+  setTimeout(()=>showOracle('The universe is alive. Tap anything to experience it. Tap + to add anything.'),800);
+}
+
+window.addEventListener('resize',()=>{initStars();renderWorld();});
+init();
+</script>
+</body>
+</html>

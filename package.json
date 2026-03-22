@@ -1,0 +1,37 @@
+{
+  "name": "younivverse",
+  "version": "1.0.0",
+  "description": "YOU·N·I·VERSE — a living world where everything exists and can be experienced",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "uuid": "^9.0.0",
+    "events": "^3.3.0",
+    "@react-three/fiber": "^8.15.0",
+    "@react-three/drei": "^9.92.0",
+    "three": "^0.160.0",
+    "lucide-react": "^0.294.0"
+  },
+  "optionalDependencies": {
+    "onnxruntime-node": "^1.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/three": "^0.160.0",
+    "@types/uuid": "^9.0.0",
+    "typescript": "^5.3.0",
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0"
+  }
+}
